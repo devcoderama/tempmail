@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #0f0f0f;
+  font-family: "Space Grotesk", "IBM Plex Mono", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #fef9c3;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #111;
+  border: 2px solid #fef9c3;
+}
