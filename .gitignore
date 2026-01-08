@@ -4,3 +4,4 @@ dist
 .env
 .env.*
 .vite
+.wrangler
