@@ -148,7 +148,7 @@ export default function EmailViewer({ email, onBack, onDelete }) {
 
           return (
             <p className="whitespace-pre-wrap font-mono text-sm">
-              {stripQuotedText(rawText) || 'Tidak ada konten.'}
+              {stripQuotedText(decodedText) || 'Tidak ada konten.'}
             </p>
           );
         })()}
