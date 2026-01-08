@@ -31,9 +31,9 @@ export default async (req) => {
     return new Response('Missing email', { status: 400 });
   }
 
-  const secret = process.env.TOKEN_HMAC_SECRET;
+  const secret = process.env.VITE_TOKEN_HMAC_SECRET || process.env.TOKEN_HMAC_SECRET;
   if (!secret) {
-    return new Response('Missing TOKEN_HMAC_SECRET', { status: 500 });
+    return new Response('Missing VITE_TOKEN_HMAC_SECRET', { status: 500 });
   }
 
   await ensureSchema();

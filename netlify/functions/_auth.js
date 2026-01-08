@@ -4,12 +4,12 @@ const VERSION = '1';
 const getHeader = (req, name) => req.headers.get(name) || '';
 
 export const verifyAuth = (req, { payload = '', expectedToken } = {}) => {
-  const secret = process.env.TOKEN_HMAC_SECRET;
-  const appToken = process.env.APP_BEARER_TOKEN;
-  const appVersion = process.env.APP_VERSION || '';
+  const secret = process.env.VITE_TOKEN_HMAC_SECRET || process.env.TOKEN_HMAC_SECRET;
+  const appToken = process.env.VITE_APP_BEARER_TOKEN || process.env.APP_BEARER_TOKEN;
+  const appVersion = process.env.VITE_APP_VERSION || process.env.APP_VERSION || '';
 
   if (!secret) {
-    return { ok: false, status: 500, message: 'Missing TOKEN_HMAC_SECRET' };
+    return { ok: false, status: 500, message: 'Missing VITE_TOKEN_HMAC_SECRET' };
   }
 
   const auth = getHeader(req, 'authorization');
@@ -36,7 +36,7 @@ export const verifyAuth = (req, { payload = '', expectedToken } = {}) => {
       return { ok: false, status: 401, message: 'Invalid token' };
     }
   } else {
-    return { ok: false, status: 500, message: 'Missing APP_BEARER_TOKEN' };
+    return { ok: false, status: 500, message: 'Missing VITE_APP_BEARER_TOKEN' };
   }
 
   if (signatureVersion !== VERSION) {
