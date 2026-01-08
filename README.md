@@ -38,11 +38,19 @@ npm run preview
 
 ## Netlify DB (Neon)
 
-1) Buat Netlify Database, lalu set env `NETLIFY_DATABASE_URL`.
-2) Email masuk akan disimpan ke tabel `inbox_messages` (dibuat otomatis).
+1) Buat Netlify Database, lalu set env `NETLIFY_DATABASE_URL` atau `NETLIFY_DATABASE_URL_UNPOOLED`.
+2) Set env `TOKEN_HMAC_SECRET` (random string) untuk token HMAC.
+3) Set env keamanan:
+   - `APP_BEARER_TOKEN`
+   - `APP_VERSION` (contoh: `1`)
+   - Frontend: `VITE_APP_BEARER_TOKEN`, `VITE_TOKEN_HMAC_SECRET`, `VITE_APP_VERSION`
+   - `VITE_TOKEN_HMAC_SECRET` harus sama dengan `TOKEN_HMAC_SECRET` di server.
+4) Email masuk akan disimpan ke tabel `inbox_messages` (dibuat otomatis).
 3) Endpoint:
    - `POST /.netlify/functions/receiveEmail`
+   - `POST /.netlify/functions/createTempMail`
    - `GET /.netlify/functions/getInbox?token=...`
+   - `POST /.netlify/functions/deleteEmail`
 
 ## Struktur data domain
 

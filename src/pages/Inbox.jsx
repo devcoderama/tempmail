@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { setCookie, getCookie, deleteCookie } from '../utils/cookies';
-import { decodeTokenToEmail } from '../utils/token';
+import { buildAuthHeaders } from '../utils/requestAuth';
 import EmailCard from '../components/tempmail/EmailCard';
 import EmailViewer from '../components/tempmail/EmailViewer';
 import LoginModal from '../components/tempmail/LoginModal';
@@ -47,13 +47,20 @@ export default function Inbox() {
   const stateEmail = location.state?.email || '';
 
   const loadEmails = async (mail, token) => {
-    if (!mail || !token) return;
+    if (!token) return null;
+    const query = new URLSearchParams({ token }).toString();
+    const headers = await buildAuthHeaders({
+      path: '/.netlify/functions/getInbox',
+      payload: query,
+      bearerToken: token,
+    });
     const response = await fetch(
-      `/.netlify/functions/getInbox?token=${encodeURIComponent(token)}`
+      `/.netlify/functions/getInbox?${query}`,
+      { headers }
     );
     if (!response.ok) {
       setEmails([]);
-      return;
+      return null;
     }
     const data = await response.json();
     const items = (data.inbox || []).map((row) => ({
@@ -67,12 +74,20 @@ export default function Inbox() {
       is_read: false,
     }));
     setEmails(items);
+    return data;
   };
 
   const loginWithToken = async (token, { silent = false, showToken = false, email = '' } = {}) => {
     setIsLoading(true);
-    const emailFromToken = decodeTokenToEmail(token);
-    if (!emailFromToken) {
+    let mail = null;
+
+    setTempMail(mail);
+    setSelectedEmail(null);
+    setShowLoginModal(false);
+    localStorage.setItem(TOKEN_KEY, token);
+    setCookie(TOKEN_COOKIE, token);
+    const result = await loadEmails(mail, token);
+    if (!result?.email_address) {
       setTempMail(null);
       setEmails([]);
       localStorage.removeItem(TOKEN_KEY);
@@ -82,18 +97,10 @@ export default function Inbox() {
       setIsLoading(false);
       return;
     }
-
-    let mail = { email_address: emailFromToken };
-
-    setTempMail(mail);
-    setSelectedEmail(null);
-    setShowLoginModal(false);
-    localStorage.setItem(TOKEN_KEY, token);
-    setCookie(TOKEN_COOKIE, token);
-    await loadEmails(mail, token);
+    setTempMail({ email_address: result.email_address });
     if (showToken) {
       setModalToken(token);
-      setModalEmail(email || mail.email_address);
+      setModalEmail(email || result.email_address);
       setShowTokenModal(true);
     }
     if (!silent) toast.success('Berhasil masuk!');
@@ -128,9 +135,34 @@ export default function Inbox() {
   };
 
   const handleDeleteEmail = async (emailId) => {
-    setEmails((prev) => prev.filter((item) => item.id !== emailId));
-    setSelectedEmail(null);
-    toast.success('Email dihapus!');
+    const token = localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_COOKIE);
+    if (!token) {
+      toast.error('Token tidak ditemukan.');
+      return;
+    }
+
+    const body = JSON.stringify({ token, id: emailId });
+    try {
+      const headers = await buildAuthHeaders({
+        path: '/.netlify/functions/deleteEmail',
+        payload: body,
+        bearerToken: token,
+      });
+      const response = await fetch('/.netlify/functions/deleteEmail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body,
+      });
+      if (!response.ok) {
+        toast.error('Gagal menghapus email.');
+        return;
+      }
+      setEmails((prev) => prev.filter((item) => item.id !== emailId));
+      setSelectedEmail(null);
+      toast.success('Email dihapus!');
+    } catch {
+      toast.error('Gagal menghubungi server.');
+    }
   };
 
   const resetAndCreateNew = () => {

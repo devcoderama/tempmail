@@ -1,13 +1,20 @@
 import { ensureSchema, normalizeEmail, sql } from './_db.js';
+import { verifyAuth } from './_auth.js';
 
 export default async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
+  const rawBody = await req.text();
+  const auth = verifyAuth(req, { payload: rawBody });
+  if (!auth.ok) {
+    return new Response(auth.message, { status: auth.status });
+  }
+
   let payload = {};
   try {
-    payload = await req.json();
+    payload = JSON.parse(rawBody);
   } catch {
     return new Response('Bad Request', { status: 400 });
   }

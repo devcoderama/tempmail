@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Copy, Check, X } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Copy, Check, X } from "lucide-react";
+import { toast } from "sonner";
 
 export default function TokenModal({ isOpen, onClose, token, email }) {
   const [copied, setCopied] = useState(false);
@@ -9,19 +9,21 @@ export default function TokenModal({ isOpen, onClose, token, email }) {
 
   if (!isOpen) return null;
 
-  const tokenLink = `${window.location.origin}/inbox?token=${encodeURIComponent(token)}`;
+  const tokenLink = `${window.location.origin}/inbox?token=${encodeURIComponent(
+    token
+  )}`;
 
   const copyToken = () => {
     navigator.clipboard.writeText(token);
     setCopied(true);
-    toast.success('Token disalin!');
+    toast.success("Token disalin!");
     setTimeout(() => setCopied(false), 2000);
   };
 
   const copyLink = () => {
     navigator.clipboard.writeText(tokenLink);
     setCopiedLink(true);
-    toast.success('Link disalin!');
+    toast.success("Link disalin!");
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
@@ -35,7 +37,9 @@ export default function TokenModal({ isOpen, onClose, token, email }) {
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <h3 className="text-2xl font-black">TOKEN AKSES</h3>
-            <p className="text-sm font-medium">Simpan token ini untuk login kembali.</p>
+            <p className="text-sm font-medium">
+              Simpan token ini untuk login kembali.
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -77,9 +81,13 @@ export default function TokenModal({ isOpen, onClose, token, email }) {
         </div>
 
         <div className="mt-4 bg-cyan-100 border-4 border-black p-4">
-          <p className="text-sm font-bold text-gray-600 mb-1">Link Login Instan</p>
+          <p className="text-sm font-bold text-gray-600 mb-1">
+            Link Login Instan
+          </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="font-mono text-xs sm:text-sm break-all">{tokenLink}</p>
+            <p className="font-mono text-xs sm:text-sm break-all">
+              {tokenLink}
+            </p>
             <button
               onClick={copyLink}
               className="w-full sm:w-auto px-4 py-2 bg-lime-300 border-3 border-black font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
@@ -99,10 +107,6 @@ export default function TokenModal({ isOpen, onClose, token, email }) {
             </button>
           </div>
         </div>
-
-        <p className="mt-4 text-sm font-medium bg-white border-3 border-black p-3">
-          Inbox hanya tersimpan di browser (localStorage). Tidak ada penyimpanan di server.
-        </p>
 
         <button
           onClick={onClose}

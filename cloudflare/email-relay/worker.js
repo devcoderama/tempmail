@@ -137,9 +137,10 @@ const extractMimeParts = (rawMessage) => {
   const { text, html } = extractParts(rawBody, contentType);
   const fallbackText = text || extractFromRawBody(rawBody, 'text/plain');
   const fallbackHtml = html || extractFromRawBody(rawBody, 'text/html');
+  const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(fallbackText || '');
   return {
     text: fallbackText || stripLeadingHeaders(rawMessage),
-    html: fallbackHtml || '',
+    html: fallbackHtml || (looksLikeHtml ? fallbackText : ''),
   };
 };
 
@@ -186,10 +187,37 @@ export default {
     });
 
     if (env.STORE_ENDPOINT) {
+      const body = JSON.stringify(payload);
+      const timestamp = Date.now().toString();
+      const storeUrl = new URL(env.STORE_ENDPOINT);
+      const sigPayload = `${storeUrl.pathname}.${timestamp}.${body}`;
+      const key = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(env.STORE_SIGNATURE_SECRET || ''),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signature = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        new TextEncoder().encode(sigPayload)
+      );
+      const sigHex = Array.from(new Uint8Array(signature))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+
       await fetch(env.STORE_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${env.STORE_BEARER_TOKEN}`,
+          'x-timestamp': timestamp,
+          'x-signature': sigHex,
+          'x-signature-version': '1',
+          'x-version-app': env.APP_VERSION || '1',
+        },
+        body,
       });
     }
   },

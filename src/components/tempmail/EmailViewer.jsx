@@ -30,6 +30,15 @@ const decodeQuotedPrintableText = (value) => {
   );
 };
 
+const cleanupMojibake = (value) => {
+  if (!value) return '';
+  return value
+    .replace(/\u00c2/g, '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+};
+
 const cleanMimeNoise = (value) => {
   if (!value) return '';
   return value
@@ -123,7 +132,9 @@ export default function EmailViewer({ email, onBack, onDelete }) {
       <div className="border-3 border-black p-4 bg-yellow-50">
         {(() => {
           const rawText = cleanMimeNoise(extractFromRawMime(email.body_text || ''));
-          const decodedText = decodeHtmlEntities(decodeQuotedPrintableText(rawText));
+          const decodedText = cleanupMojibake(
+            decodeHtmlEntities(decodeQuotedPrintableText(rawText))
+          );
           const htmlSource = email.body_html || (looksLikeHtml(decodedText) ? decodedText : '');
 
           if (htmlSource) {

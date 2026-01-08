@@ -24,6 +24,9 @@ bindings = [
 
 [vars]
 STORE_ENDPOINT = "https://botlynk.indevs.in/.netlify/functions/receiveEmail"
+STORE_BEARER_TOKEN = "REPLACE_WITH_TOKEN"
+STORE_SIGNATURE_SECRET = "REPLACE_WITH_SECRET"
+APP_VERSION = "1"
 
 [[migrations]]
 tag = "v1"
