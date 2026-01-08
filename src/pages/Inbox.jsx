@@ -158,32 +158,43 @@ export default function Inbox() {
     const relayUrl = import.meta.env.VITE_RELAY_URL;
     if (!relayUrl) return;
 
-    const wsUrl = `${relayUrl.replace(/^http/, 'ws')}/ws?email=${encodeURIComponent(
-      tempMail.email_address
-    )}`;
+    const wsBase = relayUrl.replace(/^http/, 'ws').replace(/\/+$/, '');
+    const wsUrl = `${wsBase}/ws?email=${encodeURIComponent(tempMail.email_address)}`;
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => setWsConnected(true);
     socket.onclose = () => setWsConnected(false);
     socket.onerror = () => setWsConnected(false);
     socket.onmessage = async (event) => {
+      let payload = null;
       try {
-        const payload = JSON.parse(event.data);
-        const record = await base44.entities.Email.create({
-          temp_mail_id: tempMail.id,
-          from: payload.from,
-          subject: payload.subject,
-          body_text: payload.text,
-          body_html: payload.html,
-          headers: payload.headers,
-          created_date: payload.created_at,
-          is_read: false,
-        });
-        setEmails((prev) => [record, ...prev]);
-        toast.success('Email baru masuk!');
+        payload = JSON.parse(event.data);
       } catch {
-        // ignore malformed messages
+        payload = {
+          from: 'unknown',
+          subject: '(raw)',
+          text: event.data,
+          html: '',
+          headers: {},
+          created_at: new Date().toISOString(),
+        };
       }
+
+      const bodyText = payload.text || event.data;
+      const bodyHtml = payload.html || '';
+
+      const record = await base44.entities.Email.create({
+        temp_mail_id: tempMail.id,
+        from: payload.from,
+        subject: payload.subject,
+        body_text: bodyText,
+        body_html: bodyHtml,
+        headers: payload.headers,
+        created_date: payload.created_at,
+        is_read: false,
+      });
+      setEmails((prev) => [record, ...prev]);
+      toast.success('Email baru masuk!');
     };
 
     return () => {

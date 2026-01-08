@@ -9,6 +9,8 @@ const formatDate = (date) => {
   });
 };
 
+const looksLikeHtml = (value) => /<\/?[a-z][\s\S]*>/i.test(value || '');
+
 export default function EmailViewer({ email, onBack, onDelete }) {
   if (!email) {
     return (
@@ -49,10 +51,10 @@ export default function EmailViewer({ email, onBack, onDelete }) {
         <p className="font-mono">{formatDate(email.created_date)}</p>
       </div>
       <div className="border-3 border-black p-4 bg-yellow-50">
-        {email.body_html ? (
+        {email.body_html || looksLikeHtml(email.body_text) ? (
           <div
             className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: email.body_html }}
+            dangerouslySetInnerHTML={{ __html: email.body_html || email.body_text || '' }}
           />
         ) : (
           <p className="whitespace-pre-wrap font-mono text-sm">
