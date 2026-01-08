@@ -80,6 +80,41 @@ Untuk tiap domain:
 ## Struktur data domain
 Lihat `domains.json`.
 
+## Struktur folder
+```
+.
+├── domains.json
+├── index.html
+├── package.json
+├── postcss.config.js
+├── tailwind.config.js
+├── vite.config.js
+└── src
+    ├── api
+    │   └── base44Client.js
+    ├── components
+    │   └── tempmail
+    │       ├── DomainSelector.jsx
+    │       ├── EmailCard.jsx
+    │       ├── EmailViewer.jsx
+    │       ├── LoginModal.jsx
+    │       └── TokenModal.jsx
+    ├── pages
+    │   ├── Home.jsx
+    │   └── Inbox.jsx
+    ├── utils
+    │   ├── cookies.js
+    │   └── index.js
+    ├── App.jsx
+    ├── index.css
+    └── main.jsx
+```
+
+## Tema UI
+- Neobrutalism: border tebal, shadow keras, kontras warna tinggi, dan layout tegas.
+- Warna dominan: pink, cyan, lime, dan kuning sebagai latar.
+- Tipografi: Space Grotesk + IBM Plex Mono untuk kesan modern dan teknikal.
+
 ## Catatan
 - Demo ini menyimpan inbox di browser (localStorage) dan tidak menyimpan di server.
 - Untuk produksi, Anda perlu backend yang menyimpan inbox (D1/KV/R2) dan endpoint API.
