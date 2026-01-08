@@ -159,7 +159,8 @@ export default function Inbox() {
     if (!relayUrl) return;
 
     const wsBase = relayUrl.replace(/^http/, 'ws').replace(/\/+$/, '');
-    const wsUrl = `${wsBase}/ws?email=${encodeURIComponent(tempMail.email_address)}`;
+    const emailKey = tempMail.email_address.toLowerCase().trim();
+    const wsUrl = `${wsBase}/ws?email=${encodeURIComponent(emailKey)}`;
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => setWsConnected(true);
