@@ -4,12 +4,14 @@ import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
+import { setCookie, getCookie, deleteCookie } from '../utils/cookies';
 import EmailCard from '../components/tempmail/EmailCard';
 import EmailViewer from '../components/tempmail/EmailViewer';
 import LoginModal from '../components/tempmail/LoginModal';
 import TokenModal from '../components/tempmail/TokenModal';
 
 const TOKEN_KEY = 'botlynk.lastToken';
+const TOKEN_COOKIE = 'botlynk_token';
 
 const getTokenFromSearch = (search) => {
   if (!search) return '';
@@ -60,6 +62,7 @@ export default function Inbox() {
       setSelectedEmail(null);
       setShowLoginModal(false);
       localStorage.setItem(TOKEN_KEY, token);
+      setCookie(TOKEN_COOKIE, token);
       await loadEmails(mail);
       if (showToken) {
         setModalToken(token);
@@ -71,6 +74,7 @@ export default function Inbox() {
       setTempMail(null);
       setEmails([]);
       localStorage.removeItem(TOKEN_KEY);
+      deleteCookie(TOKEN_COOKIE);
       if (!silent) toast.error('Token tidak valid!');
       setShowLoginModal(true);
     }
@@ -112,6 +116,7 @@ export default function Inbox() {
 
   const resetAndCreateNew = () => {
     localStorage.removeItem(TOKEN_KEY);
+    deleteCookie(TOKEN_COOKIE);
     setTempMail(null);
     setEmails([]);
     setSelectedEmail(null);
@@ -119,7 +124,8 @@ export default function Inbox() {
   };
 
   useEffect(() => {
-    const token = tokenFromUrl || stateToken || localStorage.getItem(TOKEN_KEY);
+    const token =
+      tokenFromUrl || stateToken || localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_COOKIE);
     if (token) {
       const shouldShowToken = stateShowToken && (stateToken || tokenFromUrl);
       loginWithToken(token, { silent: true, showToken: shouldShowToken, email: stateEmail });

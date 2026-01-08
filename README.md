@@ -33,13 +33,16 @@ npm run preview
 ## Setup Cloudflare Email Routing (untuk produksi)
 Catatan: Netlify tidak menerima email inbound. Email harus ditangkap di Cloudflare lalu diteruskan ke backend Anda.
 
-### 1) Aktifkan Email Routing
+### 1) Aktifkan backend functions
+Jika memakai Netlify Functions, pastikan backend functions aktif di pengaturan proyek Netlify Anda.
+
+### 2) Aktifkan Email Routing
 Lakukan untuk setiap domain di `domains.json`.
 - Cloudflare Dashboard -> Domain -> Email -> Email Routing
 - Klik **Get started**, aktifkan Email Routing.
 - Pastikan MX record mengikuti instruksi Cloudflare.
 
-### 2) Buat Worker Email
+### 3) Buat Worker Email
 Buat Worker di Cloudflare lalu deploy. Contoh handler (forward ke webhook backend Anda):
 ```js
 export default {
@@ -62,14 +65,14 @@ export default {
 };
 ```
 
-### 3) Hubungkan Routing ke Worker
+### 4) Hubungkan Routing ke Worker
 Untuk tiap domain:
 - Email Routing -> Routes
 - Pilih action **Send to a Worker**
 - Pilih Worker yang dibuat
 - Simpan
 
-### 4) Uji
+### 5) Uji
 - Buat alamat temp mail di UI.
 - Kirim email dari Gmail ke alamat tersebut.
 - Pastikan backend menerima webhook dari Worker.

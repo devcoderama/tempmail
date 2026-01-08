@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Mail, Key, Plus, Zap, Shield, Clock, Loader2 } from 'lucide-react';
+import { Mail, Key, Plus, Zap, Shield, Clock, Loader2, ExternalLink, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { setCookie } from '../utils/cookies';
 import DomainSelector, { DOMAINS } from '../components/tempmail/DomainSelector';
 import LoginModal from '../components/tempmail/LoginModal';
 
@@ -28,14 +29,21 @@ function generateRandomUsername() {
 }
 
 export default function Home() {
-  const [selectedDomain, setSelectedDomain] = useState(DOMAINS[0]);
+  const [selectedDomain, setSelectedDomain] = useState(DOMAINS[0] || '');
   const [username, setUsername] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [savedMails, setSavedMails] = useState([]);
+  const [savedPage, setSavedPage] = useState(1);
   const navigate = useNavigate();
 
   const fullEmail = username ? `${username}@${selectedDomain}` : '';
+
+  const loadSavedMails = async () => {
+    const list = await base44.entities.TempMail.filter({}, '-created_date');
+    setSavedMails(list);
+  };
 
   const createTempMail = async () => {
     if (!username.trim()) {
@@ -54,9 +62,12 @@ export default function Home() {
       is_active: true,
     });
 
+    setSavedMails((prev) => [newTempMail, ...prev]);
     localStorage.setItem('botlynk.lastToken', token);
+    setCookie('botlynk_token', token);
     setIsCreating(false);
     toast.success('Email sementara berhasil dibuat!');
+    setSavedPage(1);
     navigate(`/token?token=${encodeURIComponent(token)}`, {
       state: { showToken: true, token, email: fullEmail },
     });
@@ -70,6 +81,7 @@ export default function Home() {
       const mail = results[0];
       setShowLoginModal(false);
       localStorage.setItem('botlynk.lastToken', token);
+      setCookie('botlynk_token', token);
       toast.success('Berhasil masuk!');
       navigate('/inbox');
     } else {
@@ -80,7 +92,22 @@ export default function Home() {
 
   useEffect(() => {
     setUsername(generateRandomUsername());
+    loadSavedMails();
   }, []);
+
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(savedMails.length / pageSize));
+  const pagedMails = savedMails.slice((savedPage - 1) * pageSize, savedPage * pageSize);
+
+  const deleteSavedMail = async (mailId) => {
+    await base44.entities.TempMail.delete(mailId);
+    setSavedMails((prev) => prev.filter((item) => item.id !== mailId));
+    toast.success('Email tersimpan dihapus!');
+    setSavedPage((prev) => {
+      const nextTotal = Math.max(1, Math.ceil((savedMails.length - 1) / pageSize));
+      return Math.min(prev, nextTotal);
+    });
+  };
 
   return (
     <div className="min-h-screen bg-yellow-100">
@@ -191,6 +218,89 @@ export default function Home() {
                 <p className="font-medium text-sm">{feature.desc}</p>
               </motion.div>
             ))}
+          </div>
+
+          <div className="mt-10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-black">EMAIL TERSIMPAN</h3>
+              <button
+                onClick={loadSavedMails}
+                className="px-3 py-2 bg-white border-3 border-black font-bold
+                           shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+                           hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {savedMails.length === 0 ? (
+              <div className="bg-white border-4 border-black p-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <p className="font-bold">Belum ada email tersimpan.</p>
+                <p className="text-sm text-gray-600">Email yang dibuat akan muncul di sini.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pagedMails.map((mail) => (
+                  <div
+                    key={mail.id}
+                    className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <p className="font-mono font-bold break-all">{mail.email_address}</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Dibuat: {new Date(mail.created_date).toLocaleString('id-ID')}
+                    </p>
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={() =>
+                          navigate(`/token?token=${encodeURIComponent(mail.access_token)}`)
+                        }
+                        className="px-3 py-2 bg-cyan-300 border-3 border-black font-bold
+                                   shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+                                   hover:translate-x-[2px] hover:translate-y-[2px] transition-all
+                                   inline-flex items-center gap-2"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Buka Inbox
+                      </button>
+                      <button
+                        onClick={() => deleteSavedMail(mail.id)}
+                        className="px-3 py-2 bg-pink-300 border-3 border-black font-bold
+                                   shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+                                   hover:translate-x-[2px] hover:translate-y-[2px] transition-all
+                                   inline-flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    onClick={() => setSavedPage((prev) => Math.max(1, prev - 1))}
+                    disabled={savedPage === 1}
+                    className="px-3 py-2 bg-white border-3 border-black font-bold disabled:opacity-50
+                               shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+                               hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                  >
+                    Sebelumnya
+                  </button>
+                  <span className="text-sm font-bold">
+                    Halaman {savedPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setSavedPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={savedPage === totalPages}
+                    className="px-3 py-2 bg-white border-3 border-black font-bold disabled:opacity-50
+                               shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+                               hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                  >
+                    Berikutnya
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
