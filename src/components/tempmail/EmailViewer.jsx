@@ -11,6 +11,35 @@ const formatDate = (date) => {
 
 const looksLikeHtml = (value) => /<\/?[a-z][\s\S]*>/i.test(value || '');
 
+const decodeHtmlEntities = (value) => {
+  if (!value) return '';
+  return value
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+};
+
+const stripQuotedText = (value) => {
+  if (!value) return '';
+  const lines = value.split(/\r?\n/);
+  const cleaned = [];
+  for (const line of lines) {
+    if (/^On .*wrote:$/i.test(line.trim())) break;
+    cleaned.push(line);
+  }
+  return cleaned.join('\n').trim();
+};
+
+const stripQuotedHtml = (value) => {
+  if (!value) return '';
+  const quoteIndex = value.search(/<div class="gmail_quote"|<blockquote/i);
+  if (quoteIndex === -1) return value;
+  return value.slice(0, quoteIndex).trim();
+};
+
 export default function EmailViewer({ email, onBack, onDelete }) {
   if (!email) {
     return (
@@ -51,16 +80,26 @@ export default function EmailViewer({ email, onBack, onDelete }) {
         <p className="font-mono">{formatDate(email.created_date)}</p>
       </div>
       <div className="border-3 border-black p-4 bg-yellow-50">
-        {email.body_html || looksLikeHtml(email.body_text) ? (
-          <div
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: email.body_html || email.body_text || '' }}
-          />
-        ) : (
-          <p className="whitespace-pre-wrap font-mono text-sm">
-            {email.body_text || 'Tidak ada konten.'}
-          </p>
-        )}
+        {(() => {
+          const rawText = email.body_text || '';
+          const decodedText = decodeHtmlEntities(rawText);
+          const htmlSource = email.body_html || (looksLikeHtml(decodedText) ? decodedText : '');
+
+          if (htmlSource) {
+            return (
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: stripQuotedHtml(htmlSource) }}
+              />
+            );
+          }
+
+          return (
+            <p className="whitespace-pre-wrap font-mono text-sm">
+              {stripQuotedText(rawText) || 'Tidak ada konten.'}
+            </p>
+          );
+        })()}
       </div>
     </div>
   );

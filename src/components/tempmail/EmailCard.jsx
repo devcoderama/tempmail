@@ -24,7 +24,7 @@ export default function EmailCard({ email, onClick, isSelected }) {
         <span className="text-xs font-mono">{formatTime(email.created_date)}</span>
       </div>
       <p className="font-black mt-2 truncate">{email.subject || '(Tanpa Subjek)'}</p>
-      <p className="text-sm text-gray-600 truncate">{email.preview || email.body_text || 'Isi email...'}</p>
+      <p className="text-sm text-gray-600">Klik untuk membuka pesan</p>
     </button>
   );
 }

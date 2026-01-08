@@ -54,7 +54,14 @@ const extractBoundary = (contentType, rawBody) => {
   return '';
 };
 
-const extractMimeParts = (rawBody, contentType) => {
+const decodeBody = (body, headers) => {
+  const encoding = (headers['content-transfer-encoding'] || '').toLowerCase();
+  if (encoding === 'quoted-printable') return decodeQuotedPrintable(body);
+  if (encoding === 'base64') return decodeBase64(body);
+  return body;
+};
+
+const extractParts = (rawBody, contentType) => {
   const boundary = extractBoundary(contentType, rawBody);
   if (!boundary) {
     return { text: rawBody.trim(), html: '' };
@@ -71,22 +78,27 @@ const extractMimeParts = (rawBody, contentType) => {
     const body = bodyBlock.trim();
     if (!body) continue;
 
-    const encoding = (headers['content-transfer-encoding'] || '').toLowerCase();
-    let decoded = body;
-    if (encoding === 'quoted-printable') {
-      decoded = decodeQuotedPrintable(body);
-    } else if (encoding === 'base64') {
-      decoded = decodeBase64(body);
-    }
     const partType = (headers['content-type'] || '').toLowerCase();
-
-    if (partType.includes('text/plain')) {
-      text = decoded;
-    } else if (partType.includes('text/html')) {
-      html = decoded;
+    if (partType.startsWith('multipart/')) {
+      const nested = extractParts(body, headers['content-type'] || '');
+      if (!html && nested.html) html = nested.html;
+      if (!text && nested.text) text = nested.text;
+      continue;
     }
+
+    const decoded = decodeBody(body, headers);
+    if (partType.includes('text/plain') && !text) text = decoded;
+    if (partType.includes('text/html') && !html) html = decoded;
   }
 
+  return { text, html };
+};
+
+const extractMimeParts = (rawMessage) => {
+  const [rawHeaderBlock, rawBody = ''] = rawMessage.split(/\r?\n\r?\n/);
+  const topHeaders = parseHeaders(rawHeaderBlock || '');
+  const contentType = topHeaders['content-type'] || '';
+  const { text, html } = extractParts(rawBody, contentType);
   return {
     text: text || rawBody.trim(),
     html: html || '',
@@ -117,8 +129,7 @@ export default {
     if (!email) return;
 
     const rawBody = await new Response(message.raw).text();
-    const contentType = message.headers.get('content-type') || '';
-    const { text, html } = extractMimeParts(rawBody, contentType);
+    const { text, html } = extractMimeParts(rawBody);
     const payload = {
       to: message.to,
       from: message.from,
