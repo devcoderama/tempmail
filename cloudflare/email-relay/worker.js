@@ -40,6 +40,13 @@ const parseHeaders = (raw) => {
   return headers;
 };
 
+const stripLeadingHeaders = (rawMessage) => {
+  if (!rawMessage) return '';
+  const match = rawMessage.match(/\r?\n\r?\n/);
+  if (!match) return rawMessage.trim();
+  return rawMessage.slice(match.index + match[0].length).trim();
+};
+
 const extractBoundary = (contentType, rawBody) => {
   if (contentType) {
     const match = contentType.match(/boundary="?([^";]+)"?/i);
@@ -59,6 +66,35 @@ const decodeBody = (body, headers) => {
   if (encoding === 'quoted-printable') return decodeQuotedPrintable(body);
   if (encoding === 'base64') return decodeBase64(body);
   return body;
+};
+
+const extractFromRawBody = (rawBody, targetType) => {
+  const boundaryMatch = rawBody.match(/^--([^\r\n]+)/m);
+  const boundary = boundaryMatch ? boundaryMatch[1] : '';
+  if (!boundary) return '';
+
+  const parts = rawBody.split(`--${boundary}`);
+  for (const part of parts) {
+    if (!part || part.startsWith('--')) continue;
+    const trimmed = part.replace(/^\s+/, '');
+    const [headerBlock, bodyBlock = ''] = trimmed.split(/\r?\n\r?\n/);
+    const headers = parseHeaders(headerBlock || '');
+    const body = bodyBlock.trim();
+    if (!body) continue;
+
+    const partType = (headers['content-type'] || '').toLowerCase();
+    if (partType.startsWith('multipart/')) {
+      const nested = extractFromRawBody(body, targetType);
+      if (nested) return nested;
+      continue;
+    }
+
+    if (partType.includes(targetType)) {
+      return decodeBody(body, headers);
+    }
+  }
+
+  return '';
 };
 
 const extractParts = (rawBody, contentType) => {
@@ -99,9 +135,11 @@ const extractMimeParts = (rawMessage) => {
   const topHeaders = parseHeaders(rawHeaderBlock || '');
   const contentType = topHeaders['content-type'] || '';
   const { text, html } = extractParts(rawBody, contentType);
+  const fallbackText = text || extractFromRawBody(rawBody, 'text/plain');
+  const fallbackHtml = html || extractFromRawBody(rawBody, 'text/html');
   return {
-    text: text || rawBody.trim(),
-    html: html || '',
+    text: fallbackText || stripLeadingHeaders(rawMessage),
+    html: fallbackHtml || '',
   };
 };
 

@@ -74,14 +74,21 @@ export default function Inbox() {
     let mail = results[0];
 
     if (!mail) {
-      const [name, domain] = emailFromToken.split('@');
-      mail = await base44.entities.TempMail.create({
+      const byEmail = await base44.entities.TempMail.filter({
         email_address: emailFromToken,
-        domain: domain || '',
-        access_token: token,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        is_active: true,
       });
+      if (byEmail.length > 0) {
+        mail = await base44.entities.TempMail.update(byEmail[0].id, { access_token: token });
+      } else {
+        const [, domain] = emailFromToken.split('@');
+        mail = await base44.entities.TempMail.create({
+          email_address: emailFromToken,
+          domain: domain || '',
+          access_token: token,
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          is_active: true,
+        });
+      }
     }
 
     setTempMail(mail);

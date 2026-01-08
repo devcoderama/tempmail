@@ -22,6 +22,29 @@ const decodeHtmlEntities = (value) => {
     .replace(/&nbsp;/g, ' ');
 };
 
+const extractFromRawMime = (value) => {
+  if (!value) return '';
+  if (!/content-type:/i.test(value)) return value;
+  const boundaryMatch = value.match(/boundary="?([^";]+)"?/i);
+  if (!boundaryMatch) {
+    const parts = value.split(/\r?\n\r?\n/);
+    return parts.length > 1 ? parts.slice(1).join('\n\n').trim() : value;
+  }
+  const boundary = boundaryMatch[1];
+  const parts = value.split(`--${boundary}`);
+  for (const part of parts) {
+    if (/content-type:\s*text\/plain/i.test(part)) {
+      const body = part.split(/\r?\n\r?\n/).slice(1).join('\n\n').trim();
+      if (body) return body;
+    }
+    if (/content-type:\s*text\/html/i.test(part)) {
+      const body = part.split(/\r?\n\r?\n/).slice(1).join('\n\n').trim();
+      if (body) return body;
+    }
+  }
+  return value;
+};
+
 const stripQuotedText = (value) => {
   if (!value) return '';
   const lines = value.split(/\r?\n/);
@@ -81,7 +104,7 @@ export default function EmailViewer({ email, onBack, onDelete }) {
       </div>
       <div className="border-3 border-black p-4 bg-yellow-50">
         {(() => {
-          const rawText = email.body_text || '';
+          const rawText = extractFromRawMime(email.body_text || '');
           const decodedText = decodeHtmlEntities(rawText);
           const htmlSource = email.body_html || (looksLikeHtml(decodedText) ? decodedText : '');
 
