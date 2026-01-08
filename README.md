@@ -36,6 +36,14 @@ npm run preview
 5. Set Publish directory: `dist`.
 6. Deploy.
 
+## Netlify DB (Neon)
+
+1) Buat Netlify Database, lalu set env `NETLIFY_DATABASE_URL`.
+2) Email masuk akan disimpan ke tabel `inbox_messages` (dibuat otomatis).
+3) Endpoint:
+   - `POST /.netlify/functions/receiveEmail`
+   - `GET /.netlify/functions/getInbox?token=...`
+
 ## Struktur data domain
 
 Lihat `domains.json`.

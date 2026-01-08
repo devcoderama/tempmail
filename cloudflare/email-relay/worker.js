@@ -184,6 +184,14 @@ export default {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+
+    if (env.STORE_ENDPOINT) {
+      await fetch(env.STORE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
   },
 };
 

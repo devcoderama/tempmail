@@ -22,6 +22,9 @@ bindings = [
   { name = "INBOX_ROOM", class_name = "InboxRoom" }
 ]
 
+[vars]
+STORE_ENDPOINT = "https://botlynk.indevs.in/.netlify/functions/receiveEmail"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["InboxRoom"]

@@ -22,6 +22,14 @@ const decodeHtmlEntities = (value) => {
     .replace(/&nbsp;/g, ' ');
 };
 
+const decodeQuotedPrintableText = (value) => {
+  if (!value) return '';
+  const softBreaksRemoved = value.replace(/=\r?\n/g, '');
+  return softBreaksRemoved.replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16))
+  );
+};
+
 const extractFromRawMime = (value) => {
   if (!value) return '';
   if (!/content-type:/i.test(value)) return value;
@@ -105,7 +113,7 @@ export default function EmailViewer({ email, onBack, onDelete }) {
       <div className="border-3 border-black p-4 bg-yellow-50">
         {(() => {
           const rawText = extractFromRawMime(email.body_text || '');
-          const decodedText = decodeHtmlEntities(rawText);
+          const decodedText = decodeHtmlEntities(decodeQuotedPrintableText(rawText));
           const htmlSource = email.body_html || (looksLikeHtml(decodedText) ? decodedText : '');
 
           if (htmlSource) {
