@@ -392,60 +392,94 @@ export default function Home() {
       />
 
       {showContactModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4">
-          <div className="bg-white border-4 border-black max-w-lg w-full p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4"
+        >
+          <motion.div
+            initial={{ scale: 0.92, rotate: -2, opacity: 0 }}
+            animate={{ scale: 1, rotate: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18 }}
+            className="relative max-w-lg w-full p-6 border-4 border-black bg-lime-200
+                       shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <div className="absolute -top-4 -right-4 w-10 h-10 bg-pink-400 border-4 border-black rotate-6" />
             <div className="flex items-start justify-between gap-3 mb-4">
-              <h3 className="text-2xl font-black">Kontak BotLynk</h3>
+              <div>
+                <h3 className="text-2xl font-black">Kontak BotLynk</h3>
+                <p className="text-sm font-bold">Butuh bantuan? Hubungi tim kami.</p>
+              </div>
               <button
                 onClick={() => setShowContactModal(false)}
-                className="p-2 border-3 border-black bg-pink-300 font-bold"
+                className="px-3 py-2 border-3 border-black bg-cyan-300 font-black
+                           shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
+                           hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+                           hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
               >
                 Tutup
               </button>
             </div>
-            <div className="space-y-3 font-medium">
-              <p>
-                WhatsApp:{" "}
-                <a className="underline" href="https://wa.me/6287815992292">
+            <div className="grid gap-3 font-medium">
+              <div className="flex items-center justify-between gap-3 bg-white border-3 border-black px-4 py-3">
+                <span className="font-black">WhatsApp</span>
+                <a className="font-mono underline" href="https://wa.me/6287815992292">
                   6287815992292
                 </a>
-              </p>
-              <p>
-                Telegram:{" "}
+              </div>
+              <div className="flex items-center justify-between gap-3 bg-white border-3 border-black px-4 py-3">
+                <span className="font-black">Telegram</span>
                 <a
-                  className="underline"
+                  className="font-mono underline"
                   href="https://t.me/botlynk"
                   target="_blank"
                   rel="noreferrer"
                 >
                   t.me/botlynk
                 </a>
-              </p>
-              <p>
-                Grup Telegram:{" "}
+              </div>
+              <div className="flex items-center justify-between gap-3 bg-white border-3 border-black px-4 py-3">
+                <span className="font-black">Grup Telegram</span>
                 <a
-                  className="underline"
+                  className="font-mono underline"
                   href="https://t.me/botlynkid"
                   target="_blank"
                   rel="noreferrer"
                 >
                   t.me/botlynkid
                 </a>
-              </p>
-              <p>
-                Channel Telegram:{" "}
+              </div>
+              <div className="flex items-center justify-between gap-3 bg-white border-3 border-black px-4 py-3">
+                <span className="font-black">Channel</span>
                 <a
-                  className="underline"
+                  className="font-mono underline"
                   href="https://t.me/otlynk_id"
                   target="_blank"
                   rel="noreferrer"
                 >
                   t.me/otlynk_id
                 </a>
-              </p>
+              </div>
+              <div className="bg-white border-3 border-black px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-black">Website</span>
+                  <a
+                    className="font-mono underline"
+                    href="https://www.botlynk.id"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    www.botlynk.id
+                  </a>
+                </div>
+                <p className="mt-2 text-sm font-bold">
+                  Sewa bot penjualan produk modern.
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );
