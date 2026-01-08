@@ -5,19 +5,9 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { setCookie } from '../utils/cookies';
+import { generateTokenForEmail, decodeTokenToEmail } from '../utils/token';
 import DomainSelector, { DOMAINS } from '../components/tempmail/DomainSelector';
 import LoginModal from '../components/tempmail/LoginModal';
-
-function generateToken() {
-  if (crypto?.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
-    const rand = Math.floor(Math.random() * 16);
-    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
 
 function generateRandomUsername() {
   const adjectives = ['quick', 'lazy', 'happy', 'bright', 'cool', 'fast', 'smart', 'bold'];
@@ -52,7 +42,7 @@ export default function Home() {
     }
 
     setIsCreating(true);
-    const token = generateToken();
+    const token = generateTokenForEmail(fullEmail);
 
     const newTempMail = await base44.entities.TempMail.create({
       email_address: fullEmail,
@@ -68,37 +58,42 @@ export default function Home() {
     setIsCreating(false);
     toast.success('Email sementara berhasil dibuat!');
     setSavedPage(1);
-    try {
-      await fetch('/.netlify/functions/registerTempMail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email_address: fullEmail,
-          access_token: token,
-        }),
-      });
-    } catch {
-      // Ignore registration errors for now; inbox will still work locally.
-    }
-    navigate(`/token?token=${encodeURIComponent(token)}`, {
+    navigate(`/inbox?token=${encodeURIComponent(token)}`, {
       state: { showToken: true, token, email: fullEmail },
     });
   };
 
   const loginWithToken = async (token) => {
     setIsLoading(true);
-    const results = await base44.entities.TempMail.filter({ access_token: token });
-
-    if (results.length > 0) {
-      const mail = results[0];
-      setShowLoginModal(false);
-      localStorage.setItem('botlynk.lastToken', token);
-      setCookie('botlynk_token', token);
-      toast.success('Berhasil masuk!');
-      navigate('/inbox');
-    } else {
+    const emailFromToken = decodeTokenToEmail(token);
+    if (!emailFromToken) {
       toast.error('Token tidak valid!');
+      setIsLoading(false);
+      return;
     }
+
+    const results = await base44.entities.TempMail.filter({ access_token: token });
+    let mail = results[0];
+
+    if (!mail) {
+      const [name, domain] = emailFromToken.split('@');
+      mail = await base44.entities.TempMail.create({
+        email_address: emailFromToken,
+        domain: domain || DOMAINS[0] || '',
+        access_token: token,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        is_active: true,
+      });
+      if (name) setUsername(name);
+      if (domain) setSelectedDomain(domain);
+      setSavedMails((prev) => [mail, ...prev]);
+    }
+
+    setShowLoginModal(false);
+    localStorage.setItem('botlynk.lastToken', token);
+    setCookie('botlynk_token', token);
+    toast.success('Berhasil masuk!');
+    navigate('/inbox');
     setIsLoading(false);
   };
 
@@ -264,7 +259,7 @@ export default function Home() {
                     <div className="mt-3 flex flex-col sm:flex-row gap-2">
                       <button
                         onClick={() =>
-                          navigate(`/token?token=${encodeURIComponent(mail.access_token)}`)
+                          navigate(`/inbox?token=${encodeURIComponent(mail.access_token)}`)
                         }
                         className="px-3 py-2 bg-cyan-300 border-3 border-black font-bold
                                    shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]

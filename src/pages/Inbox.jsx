@@ -3,7 +3,9 @@ import { Mail, RefreshCw, Copy, Check, Plus, Key } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 import { setCookie, getCookie, deleteCookie } from '../utils/cookies';
+import { decodeTokenToEmail } from '../utils/token';
 import EmailCard from '../components/tempmail/EmailCard';
 import EmailViewer from '../components/tempmail/EmailViewer';
 import LoginModal from '../components/tempmail/LoginModal';
@@ -34,7 +36,7 @@ export default function Inbox() {
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [modalToken, setModalToken] = useState('');
   const [modalEmail, setModalEmail] = useState('');
-  const [currentToken, setCurrentToken] = useState('');
+  const [wsConnected, setWsConnected] = useState(false);
 
   const tokenFromUrl = useMemo(
     () => getTokenFromSearch(location.search),
@@ -44,51 +46,62 @@ export default function Inbox() {
   const stateShowToken = Boolean(location.state?.showToken);
   const stateEmail = location.state?.email || '';
 
-  const loadEmails = async (token) => {
-    if (!token) return;
-    const response = await fetch(`/.netlify/functions/getInbox?token=${encodeURIComponent(token)}`);
-    if (!response.ok) {
-      setEmails([]);
-      return;
-    }
-    const data = await response.json();
-    setEmails(data.inbox || []);
+  const loadEmails = async (mail) => {
+    if (!mail) return;
+    const userEmails = await base44.entities.Email.filter(
+      { temp_mail_id: mail.id },
+      '-created_date'
+    );
+    setEmails(userEmails);
   };
 
   const loginWithToken = async (token, { silent = false, showToken = false, email = '' } = {}) => {
     setIsLoading(true);
-    const results = await base44.entities.TempMail.filter({ access_token: token });
-
-    if (results.length > 0) {
-      const mail = results[0];
-      setTempMail(mail);
-      setSelectedEmail(null);
-      setShowLoginModal(false);
-      localStorage.setItem(TOKEN_KEY, token);
-      setCookie(TOKEN_COOKIE, token);
-      setCurrentToken(token);
-      await loadEmails(token);
-      if (showToken) {
-        setModalToken(token);
-        setModalEmail(email || mail.email_address);
-        setShowTokenModal(true);
-      }
-      if (!silent) toast.success('Berhasil masuk!');
-    } else {
+    const emailFromToken = decodeTokenToEmail(token);
+    if (!emailFromToken) {
       setTempMail(null);
       setEmails([]);
       localStorage.removeItem(TOKEN_KEY);
       deleteCookie(TOKEN_COOKIE);
       if (!silent) toast.error('Token tidak valid!');
       setShowLoginModal(true);
+      setIsLoading(false);
+      return;
     }
+
+    const results = await base44.entities.TempMail.filter({ access_token: token });
+    let mail = results[0];
+
+    if (!mail) {
+      const [name, domain] = emailFromToken.split('@');
+      mail = await base44.entities.TempMail.create({
+        email_address: emailFromToken,
+        domain: domain || '',
+        access_token: token,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        is_active: true,
+      });
+    }
+
+    setTempMail(mail);
+    setSelectedEmail(null);
+    setShowLoginModal(false);
+    localStorage.setItem(TOKEN_KEY, token);
+    setCookie(TOKEN_COOKIE, token);
+    await loadEmails(mail);
+    if (showToken) {
+      setModalToken(token);
+      setModalEmail(email || mail.email_address);
+      setShowTokenModal(true);
+    }
+    if (!silent) toast.success('Berhasil masuk!');
     setIsLoading(false);
   };
 
   const refreshInbox = async () => {
     if (!tempMail) return;
     setIsRefreshing(true);
-    await loadEmails(currentToken);
+    await loadEmails(tempMail);
     setIsRefreshing(false);
     toast.success('Kotak masuk diperbarui!');
   };
@@ -104,6 +117,7 @@ export default function Inbox() {
   const handleEmailClick = async (email) => {
     setSelectedEmail(email);
     if (!email.is_read) {
+      await base44.entities.Email.update(email.id, { is_read: true });
       setEmails((prev) =>
         prev.map((item) => (item.id === email.id ? { ...item, is_read: true } : item))
       );
@@ -111,6 +125,7 @@ export default function Inbox() {
   };
 
   const handleDeleteEmail = async (emailId) => {
+    await base44.entities.Email.delete(emailId);
     setEmails((prev) => prev.filter((item) => item.id !== emailId));
     setSelectedEmail(null);
     toast.success('Email dihapus!');
@@ -135,6 +150,44 @@ export default function Inbox() {
       setShowLoginModal(true);
     }
   }, [tokenFromUrl, stateToken, stateShowToken, stateEmail]);
+
+  useEffect(() => {
+    if (!tempMail?.email_address) return;
+    const relayUrl = import.meta.env.VITE_RELAY_URL;
+    if (!relayUrl) return;
+
+    const wsUrl = `${relayUrl.replace(/^http/, 'ws')}/ws?email=${encodeURIComponent(
+      tempMail.email_address
+    )}`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => setWsConnected(true);
+    socket.onclose = () => setWsConnected(false);
+    socket.onerror = () => setWsConnected(false);
+    socket.onmessage = async (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        const record = await base44.entities.Email.create({
+          temp_mail_id: tempMail.id,
+          from: payload.from,
+          subject: payload.subject,
+          body_text: payload.text,
+          body_html: payload.html,
+          headers: payload.headers,
+          created_date: payload.created_at,
+          is_read: false,
+        });
+        setEmails((prev) => [record, ...prev]);
+        toast.success('Email baru masuk!');
+      } catch {
+        // ignore malformed messages
+      }
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [tempMail?.email_address]);
 
   if (!tempMail) {
     return (
@@ -288,6 +341,13 @@ export default function Inbox() {
                   {emails.filter((email) => !email.is_read).length} baru
                 </span>
               )}
+              <span
+                className={`px-2 py-0.5 border-2 border-black text-xs ${
+                  wsConnected ? 'bg-lime-300' : 'bg-gray-200'
+                }`}
+              >
+                {wsConnected ? 'Live' : 'Offline'}
+              </span>
             </h3>
 
             {emails.length === 0 ? (

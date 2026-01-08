@@ -9,7 +9,7 @@ export default function TokenModal({ isOpen, onClose, token, email }) {
 
   if (!isOpen) return null;
 
-  const tokenLink = `${window.location.origin}/token?token=${encodeURIComponent(token)}`;
+  const tokenLink = `${window.location.origin}/inbox?token=${encodeURIComponent(token)}`;
 
   const copyToken = () => {
     navigator.clipboard.writeText(token);
