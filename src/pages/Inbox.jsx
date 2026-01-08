@@ -3,7 +3,6 @@ import { Mail, RefreshCw, Copy, Check, Plus, Key } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
 import { setCookie, getCookie, deleteCookie } from '../utils/cookies';
 import EmailCard from '../components/tempmail/EmailCard';
 import EmailViewer from '../components/tempmail/EmailViewer';
@@ -35,6 +34,7 @@ export default function Inbox() {
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [modalToken, setModalToken] = useState('');
   const [modalEmail, setModalEmail] = useState('');
+  const [currentToken, setCurrentToken] = useState('');
 
   const tokenFromUrl = useMemo(
     () => getTokenFromSearch(location.search),
@@ -44,12 +44,15 @@ export default function Inbox() {
   const stateShowToken = Boolean(location.state?.showToken);
   const stateEmail = location.state?.email || '';
 
-  const loadEmails = async (mail) => {
-    const userEmails = await base44.entities.Email.filter(
-      { temp_mail_id: mail.id },
-      '-created_date'
-    );
-    setEmails(userEmails);
+  const loadEmails = async (token) => {
+    if (!token) return;
+    const response = await fetch(`/.netlify/functions/getInbox?token=${encodeURIComponent(token)}`);
+    if (!response.ok) {
+      setEmails([]);
+      return;
+    }
+    const data = await response.json();
+    setEmails(data.inbox || []);
   };
 
   const loginWithToken = async (token, { silent = false, showToken = false, email = '' } = {}) => {
@@ -63,7 +66,8 @@ export default function Inbox() {
       setShowLoginModal(false);
       localStorage.setItem(TOKEN_KEY, token);
       setCookie(TOKEN_COOKIE, token);
-      await loadEmails(mail);
+      setCurrentToken(token);
+      await loadEmails(token);
       if (showToken) {
         setModalToken(token);
         setModalEmail(email || mail.email_address);
@@ -84,7 +88,7 @@ export default function Inbox() {
   const refreshInbox = async () => {
     if (!tempMail) return;
     setIsRefreshing(true);
-    await loadEmails(tempMail);
+    await loadEmails(currentToken);
     setIsRefreshing(false);
     toast.success('Kotak masuk diperbarui!');
   };
@@ -100,7 +104,6 @@ export default function Inbox() {
   const handleEmailClick = async (email) => {
     setSelectedEmail(email);
     if (!email.is_read) {
-      await base44.entities.Email.update(email.id, { is_read: true });
       setEmails((prev) =>
         prev.map((item) => (item.id === email.id ? { ...item, is_read: true } : item))
       );
@@ -108,7 +111,6 @@ export default function Inbox() {
   };
 
   const handleDeleteEmail = async (emailId) => {
-    await base44.entities.Email.delete(emailId);
     setEmails((prev) => prev.filter((item) => item.id !== emailId));
     setSelectedEmail(null);
     toast.success('Email dihapus!');

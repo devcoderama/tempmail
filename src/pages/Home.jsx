@@ -68,6 +68,18 @@ export default function Home() {
     setIsCreating(false);
     toast.success('Email sementara berhasil dibuat!');
     setSavedPage(1);
+    try {
+      await fetch('/.netlify/functions/registerTempMail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email_address: fullEmail,
+          access_token: token,
+        }),
+      });
+    } catch {
+      // Ignore registration errors for now; inbox will still work locally.
+    }
     navigate(`/token?token=${encodeURIComponent(token)}`, {
       state: { showToken: true, token, email: fullEmail },
     });
