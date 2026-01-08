@@ -184,16 +184,16 @@ export default function Inbox() {
       const bodyText = payload.text || event.data;
       const bodyHtml = payload.html || '';
 
-      const record = await base44.entities.Email.create({
-        temp_mail_id: tempMail.id,
+      const record = {
+        id: crypto.randomUUID ? crypto.randomUUID() : `mail_${Date.now()}`,
         from: payload.from,
         subject: payload.subject,
         body_text: bodyText,
         body_html: bodyHtml,
         headers: payload.headers,
-        created_date: payload.created_at,
+        created_date: payload.created_at || new Date().toISOString(),
         is_read: false,
-      });
+      };
       setEmails((prev) => [record, ...prev]);
       toast.success('Email baru masuk!');
     };

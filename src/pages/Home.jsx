@@ -22,6 +22,7 @@ export default function Home() {
   const [selectedDomain, setSelectedDomain] = useState(DOMAINS[0] || '');
   const [username, setUsername] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [savedMails, setSavedMails] = useState([]);
@@ -100,6 +101,7 @@ export default function Home() {
   useEffect(() => {
     setUsername(generateRandomUsername());
     loadSavedMails();
+    setShowContactModal(true);
   }, []);
 
   const pageSize = 5;
@@ -318,6 +320,58 @@ export default function Home() {
         onLogin={loginWithToken}
         isLoading={isLoading}
       />
+
+      {showContactModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4">
+          <div className="bg-white border-4 border-black max-w-lg w-full p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h3 className="text-2xl font-black">Kontak BotLynk</h3>
+              <button
+                onClick={() => setShowContactModal(false)}
+                className="p-2 border-3 border-black bg-pink-300 font-bold"
+              >
+                Tutup
+              </button>
+            </div>
+            <div className="space-y-3 font-medium">
+              <p>
+                WhatsApp:{' '}
+                <a className="underline" href="https://wa.me/6287815992292">
+                  6287815992292
+                </a>
+              </p>
+              <p>
+                Telegram:{' '}
+                <a className="underline" href="https://t.me/botlynk" target="_blank" rel="noreferrer">
+                  t.me/botlynk
+                </a>
+              </p>
+              <p>
+                Grup Telegram:{' '}
+                <a
+                  className="underline"
+                  href="https://t.me/botlynkid"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  t.me/botlynkid
+                </a>
+              </p>
+              <p>
+                Channel Telegram:{' '}
+                <a
+                  className="underline"
+                  href="https://t.me/otlynk_id"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  t.me/otlynk_id
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
