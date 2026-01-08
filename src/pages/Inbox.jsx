@@ -37,6 +37,7 @@ export default function Inbox() {
   const [modalToken, setModalToken] = useState('');
   const [modalEmail, setModalEmail] = useState('');
   const [wsConnected, setWsConnected] = useState(false);
+  const [wsKey, setWsKey] = useState(0);
 
   const tokenFromUrl = useMemo(
     () => getTokenFromSearch(location.search),
@@ -104,6 +105,7 @@ export default function Inbox() {
     await loadEmails(tempMail);
     setIsRefreshing(false);
     toast.success('Kotak masuk diperbarui!');
+    setWsKey((prev) => prev + 1);
   };
 
   const copyEmail = () => {
@@ -187,7 +189,7 @@ export default function Inbox() {
     return () => {
       socket.close();
     };
-  }, [tempMail?.email_address]);
+  }, [tempMail?.email_address, wsKey]);
 
   if (!tempMail) {
     return (

@@ -25,12 +25,15 @@ export default {
     const email = (message.to || '').trim().toLowerCase();
     if (!email) return;
 
+    const rawBody = await new Response(message.raw).text();
+    const parts = rawBody.split(/\r?\n\r?\n/);
+    const bodyOnly = parts.length > 1 ? parts.slice(1).join('\n\n') : rawBody;
     const payload = {
       to: message.to,
       from: message.from,
       subject: message.headers.get('subject'),
-      text: await new Response(message.raw).text(),
-      html: await new Response(message.raw).text(),
+      text: bodyOnly,
+      html: bodyOnly,
       headers: Object.fromEntries(message.headers),
       created_at: new Date().toISOString(),
     };
