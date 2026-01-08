@@ -4,17 +4,62 @@ const jsonResponse = (payload, status = 200) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
+const decodeQuotedPrintable = (value) => {
+  if (!value) return '';
+  const softBreaksRemoved = value.replace(/=\r?\n/g, '');
+  return softBreaksRemoved.replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16))
+  );
+};
+
+const decodeBase64 = (value) => {
+  if (!value) return '';
+  const cleaned = value.replace(/\s+/g, '');
+  try {
+    return atob(cleaned);
+  } catch {
+    return value;
+  }
+};
+
+const parseHeaders = (raw) => {
+  const headers = {};
+  const lines = raw.split(/\r?\n/);
+  let currentKey = '';
+  for (const line of lines) {
+    if (!line) continue;
+    if (/^\s/.test(line) && currentKey) {
+      headers[currentKey] += ` ${line.trim()}`;
+      continue;
+    }
+    const idx = line.indexOf(':');
+    if (idx === -1) continue;
+    currentKey = line.slice(0, idx).toLowerCase();
+    headers[currentKey] = line.slice(idx + 1).trim();
+  }
+  return headers;
+};
+
+const extractBoundary = (contentType, rawBody) => {
+  if (contentType) {
+    const match = contentType.match(/boundary="?([^";]+)"?/i);
+    if (match) return match[1];
+  }
+
+  const firstLine = rawBody.split(/\r?\n/)[0] || '';
+  if (firstLine.startsWith('--')) {
+    return firstLine.slice(2).trim();
+  }
+
+  return '';
+};
+
 const extractMimeParts = (rawBody, contentType) => {
-  if (!contentType) {
-    return { text: rawBody, html: rawBody };
+  const boundary = extractBoundary(contentType, rawBody);
+  if (!boundary) {
+    return { text: rawBody.trim(), html: '' };
   }
 
-  const boundaryMatch = contentType.match(/boundary="?([^";]+)"?/i);
-  if (!boundaryMatch) {
-    return { text: rawBody, html: rawBody };
-  }
-
-  const boundary = boundaryMatch[1];
   const parts = rawBody.split(`--${boundary}`);
   let text = '';
   let html = '';
@@ -22,21 +67,29 @@ const extractMimeParts = (rawBody, contentType) => {
   for (const part of parts) {
     if (!part || part.startsWith('--')) continue;
     const [headerBlock, bodyBlock = ''] = part.split(/\r?\n\r?\n/);
-    const headers = headerBlock.toLowerCase();
+    const headers = parseHeaders(headerBlock || '');
     const body = bodyBlock.trim();
     if (!body) continue;
 
-    if (headers.includes('content-type: text/plain')) {
-      text = body;
+    const encoding = (headers['content-transfer-encoding'] || '').toLowerCase();
+    let decoded = body;
+    if (encoding === 'quoted-printable') {
+      decoded = decodeQuotedPrintable(body);
+    } else if (encoding === 'base64') {
+      decoded = decodeBase64(body);
     }
-    if (headers.includes('content-type: text/html')) {
-      html = body;
+    const partType = (headers['content-type'] || '').toLowerCase();
+
+    if (partType.includes('text/plain')) {
+      text = decoded;
+    } else if (partType.includes('text/html')) {
+      html = decoded;
     }
   }
 
   return {
-    text: text || rawBody,
-    html: html || rawBody,
+    text: text || rawBody.trim(),
+    html: html || '',
   };
 };
 
