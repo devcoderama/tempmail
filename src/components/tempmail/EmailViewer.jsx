@@ -30,6 +30,16 @@ const decodeQuotedPrintableText = (value) => {
   );
 };
 
+const cleanMimeNoise = (value) => {
+  if (!value) return '';
+  return value
+    .replace(/^--[-_A-Za-z0-9]+.*$/gm, '')
+    .replace(/^Content-Type:.*$/gim, '')
+    .replace(/^Content-Transfer-Encoding:.*$/gim, '')
+    .replace(/\r?\n{3,}/g, '\n\n')
+    .trim();
+};
+
 const extractFromRawMime = (value) => {
   if (!value) return '';
   if (!/content-type:/i.test(value)) return value;
@@ -112,7 +122,7 @@ export default function EmailViewer({ email, onBack, onDelete }) {
       </div>
       <div className="border-3 border-black p-4 bg-yellow-50">
         {(() => {
-          const rawText = extractFromRawMime(email.body_text || '');
+          const rawText = cleanMimeNoise(extractFromRawMime(email.body_text || ''));
           const decodedText = decodeHtmlEntities(decodeQuotedPrintableText(rawText));
           const htmlSource = email.body_html || (looksLikeHtml(decodedText) ? decodedText : '');
 
