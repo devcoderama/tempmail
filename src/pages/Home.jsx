@@ -454,7 +454,7 @@ export default function Home() {
                 <span className="font-black">Channel</span>
                 <a
                   className="font-mono underline"
-                  href="https://t.me/otlynk_id"
+                  href="https://t.me/botlynk_id"
                   target="_blank"
                   rel="noreferrer"
                 >
