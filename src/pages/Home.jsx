@@ -19,31 +19,277 @@ import { buildAuthHeaders } from "../utils/requestAuth";
 import DomainSelector, { DOMAINS } from "../components/tempmail/DomainSelector";
 import LoginModal from "../components/tempmail/LoginModal";
 
+const FRONT_PREFIXES = [
+  "adi",
+  "agung",
+  "aji",
+  "andika",
+  "angga",
+  "ari",
+  "arif",
+  "bagus",
+  "bima",
+  "cahya",
+  "danu",
+  "darma",
+  "dimas",
+  "eka",
+  "faris",
+  "fajar",
+  "galih",
+  "gilang",
+  "guntur",
+  "hadi",
+  "hanif",
+  "indra",
+  "jaya",
+  "joko",
+  "kurnia",
+  "luthfi",
+  "mahdi",
+  "miko",
+  "nanda",
+  "pradana",
+  "pratama",
+  "radit",
+  "rafi",
+  "rangga",
+  "reza",
+  "raka",
+  "rami",
+  "reno",
+  "rio",
+  "rizki",
+  "salim",
+  "satria",
+  "tama",
+  "taufik",
+  "vito",
+  "wira",
+  "yoga",
+  "zaki",
+  "zidan",
+];
+
+const FRONT_SUFFIXES = [
+  "an",
+  "al",
+  "ar",
+  "ra",
+  "ri",
+  "ta",
+  "no",
+  "di",
+  "sa",
+  "ma",
+  "ya",
+  "li",
+  "na",
+  "ga",
+  "ka",
+  "za",
+  "fa",
+  "la",
+  "mi",
+  "ha",
+  "ta",
+  "qi",
+  "sy",
+  "ny",
+  "ra",
+  "ri",
+  "si",
+  "to",
+  "yo",
+  "yu",
+];
+
+const MIDDLE_PREFIXES = [
+  "alam",
+  "banyu",
+  "bayu",
+  "candra",
+  "citra",
+  "dipa",
+  "duta",
+  "eka",
+  "fana",
+  "fathi",
+  "gama",
+  "gita",
+  "hana",
+  "indra",
+  "jagat",
+  "jaya",
+  "kala",
+  "karya",
+  "lingga",
+  "madya",
+  "nara",
+  "nirmala",
+  "panca",
+  "praba",
+  "putra",
+  "putri",
+  "raka",
+  "ratna",
+  "sakti",
+  "sena",
+  "sri",
+  "tara",
+  "tiara",
+  "utama",
+  "wibawa",
+  "widya",
+  "wira",
+  "wisnu",
+  "yuda",
+  "yuni",
+  "zuhra",
+];
+
+const MIDDLE_SUFFIXES = [
+  "adi",
+  "artha",
+  "basa",
+  "bima",
+  "dara",
+  "daya",
+  "dipa",
+  "gana",
+  "jaya",
+  "jiva",
+  "kala",
+  "kanti",
+  "kara",
+  "loka",
+  "manggala",
+  "maya",
+  "nanta",
+  "natha",
+  "naya",
+  "nusa",
+  "pati",
+  "prana",
+  "raga",
+  "raya",
+  "restu",
+  "sakti",
+  "sena",
+  "suci",
+  "utama",
+  "wira",
+];
+
+const LAST_PREFIXES = [
+  "anggoro",
+  "arjuna",
+  "bumi",
+  "cakra",
+  "dharma",
+  "dirga",
+  "gatra",
+  "gilang",
+  "hadinata",
+  "hidayat",
+  "irawan",
+  "januar",
+  "kencana",
+  "kusuma",
+  "laras",
+  "mahendra",
+  "maulana",
+  "nugraha",
+  "pahlawan",
+  "permana",
+  "prabowo",
+  "pratama",
+  "purnama",
+  "ramadhan",
+  "ramdani",
+  "sanjaya",
+  "saputra",
+  "saputri",
+  "setiawan",
+  "siregar",
+  "sukma",
+  "syahputra",
+  "tanjung",
+  "utomo",
+  "wibisono",
+  "wirawan",
+  "yudhistira",
+  "zahra",
+  "zulkarnain",
+];
+
+const LAST_SUFFIXES = [
+  "adi",
+  "aga",
+  "anto",
+  "ara",
+  "asri",
+  "atma",
+  "budi",
+  "cahya",
+  "dana",
+  "daru",
+  "ditya",
+  "guna",
+  "hadi",
+  "harjo",
+  "karta",
+  "kaya",
+  "kirana",
+  "laksana",
+  "laksmi",
+  "mukti",
+  "nawa",
+  "nirwana",
+  "pati",
+  "perdana",
+  "prasetya",
+  "putra",
+  "putri",
+  "rahman",
+  "santosa",
+  "setia",
+  "utama",
+  "wangi",
+  "wardana",
+  "wijaya",
+  "yanto",
+  "yasa",
+  "zamani",
+  "zuhdi",
+  "zulfa",
+  "zulfikar",
+];
+
+function buildNamePool(prefixes, suffixes, count) {
+  const names = [];
+  for (let i = 0; i < prefixes.length && names.length < count; i += 1) {
+    for (let j = 0; j < suffixes.length && names.length < count; j += 1) {
+      names.push(`${prefixes[i]}${suffixes[j]}`);
+    }
+  }
+  return names;
+}
+
+const FRONT_NAMES = buildNamePool(FRONT_PREFIXES, FRONT_SUFFIXES, 500);
+const MIDDLE_NAMES = buildNamePool(MIDDLE_PREFIXES, MIDDLE_SUFFIXES, 500);
+const LAST_NAMES = buildNamePool(LAST_PREFIXES, LAST_SUFFIXES, 500);
+
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 function generateRandomUsername() {
-  const adjectives = [
-    "quick",
-    "lazy",
-    "happy",
-    "bright",
-    "cool",
-    "fast",
-    "smart",
-    "bold",
-  ];
-  const nouns = [
-    "tiger",
-    "eagle",
-    "wolf",
-    "bear",
-    "fox",
-    "hawk",
-    "lion",
-    "deer",
-  ];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  const num = Math.floor(Math.random() * 999);
-  return `${adj}${noun}${num}`;
+  const first = pickRandom(FRONT_NAMES);
+  const middle = pickRandom(MIDDLE_NAMES);
+  const last = pickRandom(LAST_NAMES);
+  const raw = `${first}${middle}${last}`.toLowerCase();
+  return raw.slice(0, 10);
 }
 
 export default function Home() {
@@ -140,7 +386,7 @@ export default function Home() {
   const totalPages = Math.max(1, Math.ceil(savedMails.length / pageSize));
   const pagedMails = savedMails.slice(
     (savedPage - 1) * pageSize,
-    savedPage * pageSize
+    savedPage * pageSize,
   );
 
   const deleteSavedMail = async (mailId) => {
@@ -150,7 +396,7 @@ export default function Home() {
     setSavedPage((prev) => {
       const nextTotal = Math.max(
         1,
-        Math.ceil((savedMails.length - 1) / pageSize)
+        Math.ceil((savedMails.length - 1) / pageSize),
       );
       return Math.min(prev, nextTotal);
     });
@@ -204,7 +450,7 @@ export default function Home() {
                 value={username}
                 onChange={(event) =>
                   setUsername(
-                    event.target.value.toLowerCase().replace(/[^a-z0-9]/g, "")
+                    event.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""),
                   )
                 }
                 placeholder="username"
@@ -325,8 +571,8 @@ export default function Home() {
                         onClick={() =>
                           navigate(
                             `/inbox?token=${encodeURIComponent(
-                              mail.access_token
-                            )}`
+                              mail.access_token,
+                            )}`,
                           )
                         }
                         className="px-3 py-2 bg-cyan-300 border-3 border-black font-bold
@@ -409,7 +655,9 @@ export default function Home() {
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-2xl font-black">Kontak BotLynk</h3>
-                <p className="text-sm font-bold">Butuh bantuan? Hubungi tim kami.</p>
+                <p className="text-sm font-bold">
+                  Butuh bantuan? Hubungi tim kami.
+                </p>
               </div>
               <button
                 onClick={() => setShowContactModal(false)}
@@ -424,7 +672,10 @@ export default function Home() {
             <div className="grid gap-3 font-medium">
               <div className="flex items-center justify-between gap-3 bg-white border-3 border-black px-4 py-3">
                 <span className="font-black">WhatsApp</span>
-                <a className="font-mono underline" href="https://wa.me/6287815992292">
+                <a
+                  className="font-mono underline"
+                  href="https://wa.me/6287815992292"
+                >
                   6287815992292
                 </a>
               </div>
@@ -458,7 +709,7 @@ export default function Home() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  t.me/otlynk_id
+                  t.me/botlynk_id
                 </a>
               </div>
               <div className="bg-white border-3 border-black px-4 py-3">
