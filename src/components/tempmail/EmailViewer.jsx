@@ -35,6 +35,16 @@ const decodeHtmlEntitiesIfLooksEncoded = (value) => {
   return /&lt;[a-z!]/i.test(value) ? decodeHtmlEntities(value) : value;
 };
 
+const stripHtmlToText = (value) => {
+  if (!value) return '';
+  return value
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<\/?[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 const cleanupMojibake = (value) => {
   if (!value) return '';
   return value
@@ -140,17 +150,22 @@ export default function EmailViewer({ email, onBack, onDelete }) {
           const decodedText = cleanupMojibake(
             decodeHtmlEntities(decodeQuotedPrintableText(rawText))
           );
-          const rawHtml = email.body_html || '';
+          const rawHtml = cleanMimeNoise(extractFromRawMime(email.body_html || ''));
           const decodedHtml = cleanupMojibake(decodeQuotedPrintableText(rawHtml));
           const normalizedHtml = decodeHtmlEntitiesIfLooksEncoded(decodedHtml);
+          const htmlCandidate = stripQuotedHtml(normalizedHtml);
+          const htmlHasVisibleText = stripHtmlToText(htmlCandidate).length > 0;
           const htmlSource =
-            normalizedHtml || (looksLikeHtml(decodedText) ? decodedText : '');
+            (htmlHasVisibleText ? htmlCandidate : '') ||
+            (looksLikeHtml(decodedText) ? decodedText : '');
 
           if (htmlSource) {
             return (
-              <div
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: stripQuotedHtml(htmlSource) }}
+              <iframe
+                title="Email content"
+                className="w-full min-h-[320px] h-[60vh] bg-white"
+                sandbox=""
+                srcDoc={htmlSource}
               />
             );
           }
